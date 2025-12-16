@@ -1,4 +1,4 @@
-package uj.wmii.pwj.collections;
+package ShipsGenerator;
 
 public class Vector2D {
     private int x;

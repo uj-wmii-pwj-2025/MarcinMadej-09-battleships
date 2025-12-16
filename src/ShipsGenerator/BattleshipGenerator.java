@@ -1,4 +1,4 @@
-package uj.wmii.pwj.collections;
+package ShipsGenerator;
 
 import java.util.Random;
 

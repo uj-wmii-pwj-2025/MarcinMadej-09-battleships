@@ -1,6 +1,6 @@
 package Game;
 
 @FunctionalInterface
-public interface Command {
-    void exec(Game instance);
+public interface StartGameMode {
+    void start(Game instance, AppArgs args);
 }
