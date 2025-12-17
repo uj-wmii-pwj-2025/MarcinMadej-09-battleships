@@ -43,14 +43,14 @@ public class Server {
         try {
             while(true){
                 if(!isStarted){
-                    while(!isStarted){
+                    while(true){
                         String received = in.readLine();
-                        System.out.println("Client says: " + in.readLine());
-                        String[] p = received.split(",", 2);
+                        System.out.println("Client says: " + received);
+                        String[] p = received.split(";", -1);
                         command = p[0].trim().toLowerCase();
-                        row = p[1].trim().toLowerCase().charAt(0) - 41;
-                        col = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
-                        if(!command.equals("start")) {
+                        col = p[1].trim().toLowerCase().charAt(0) - 97;
+                        row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                        if(!command.equalsIgnoreCase("start")) {
                             out.println("Please, start the game first");
                             continue;
                         }
@@ -59,27 +59,28 @@ public class Server {
                             continue;
                         }
                         isStarted = true;
+                        break;
                     }
                     String enemyShoot = shootLoader(col,row);
-                    System.out.println("Enemy: " + enemyShoot + " " + String.valueOf(row).toUpperCase() + row);
+                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);
                     enemyResult = enemyShoot;
                 } else {
                     String recieved = in.readLine();
-                    System.out.println("Client says: " + in.readLine());
-                    String[] p = recieved.split(",", 2);
-                    row = p[1].trim().toLowerCase().charAt(0) - 41;
-                    col = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                    System.out.println("Client says: " + recieved);
+                    String[] p = recieved.split(";", 2);
+                    col = p[1].trim().toLowerCase().charAt(0) - 97;
+                    row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
                     if (row < 0 || row > 9 || col < 0 || col > 9) {
                         out.println("Index out of bonds");
                         continue;
                     }
                     String enemyShoot = shootLoader(col,row);
-                    System.out.println("Enemy: " + enemyShoot + " " + String.valueOf(row).toUpperCase() + row);
+                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);
                     enemyResult = enemyShoot;
                 }
                 System.out.println("Write coordinates:\n");
-                String msg = ReadConsole.nextLine().trim().toUpperCase();
-                out.println(enemyResult + ";" + msg + "\n");
+                String coordinates = ReadConsole.nextLine().trim().toUpperCase();
+                out.println(enemyResult + ";" + coordinates);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

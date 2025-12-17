@@ -36,15 +36,50 @@ public class Client {
 
     public void runClientLogic(Client client){
         client.readMap();
+        String command = null;
+        int row = 0;
+        int col = 0;
+        String enemyResult = null;
         try {
             while (true) {
-                System.out.println("Write your command:\n");
-                String msg = ReadConsole.nextLine().trim();
-                out.println(msg);
-                System.out.println(in.readLine());
+                System.out.println("Write - start - to start the game");
+                if(ReadConsole.nextLine().trim().equalsIgnoreCase("start")){
+                    command = "start";
+                    break;
+                }
+            }
+            while (true) {
+                System.out.println("Write coordinates:\n");
+                String coordinates = ReadConsole.nextLine().trim().toUpperCase();
+                out.println(command + ";" + coordinates);
+                while(true) {
+                    String recieved = in.readLine();
+                    System.out.println("Server says: " + recieved);
+                    String[] p = recieved.split(";", 2);
+                    col = p[1].trim().toLowerCase().charAt(0) - 97;
+                    row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                    if (row < 0 || row > 9 || col < 0 || col > 9) {
+                        out.println("Index out of bonds");
+                        continue;
+                    }
+                    String enemyShoot = shootLoader(col,row);
+                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);;
+                    command = enemyShoot;
+                    break;
+                }
+
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public String shootLoader(int col, int row){
+        char shootingPlace = ClientMap[col][row];
+        if(shootingPlace == '~' || shootingPlace == '.'){
+            return "pudło";
+        } else {
+            return "trafiony";
         }
     }
 
