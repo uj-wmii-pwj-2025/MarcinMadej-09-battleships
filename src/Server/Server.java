@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Scanner;
 
 import static ShipsGenerator.GenerateShips.generateToFile;
@@ -19,6 +20,7 @@ public class Server {
     private final String MapFileName = "hostMap.txt";
     private char[][] HostMap = new char[10][10];
     private final Scanner ReadConsole = new Scanner(System.in);
+    private int shipsAlive = 10;
 
     public void serverMain(int port, String mapFile) {
         Server server = new Server();
@@ -66,6 +68,10 @@ public class Server {
                     enemyResult = enemyShoot;
                 } else {
                     String recieved = in.readLine();
+                    if(recieved.equalsIgnoreCase("ostatni zatopiony")){
+                        System.out.println("Wygrana");
+                        System.exit(0);
+                    }
                     System.out.println("Client says: " + recieved);
                     String[] p = recieved.split(";", 2);
                     col = p[1].trim().toLowerCase().charAt(0) - 97;
@@ -78,9 +84,14 @@ public class Server {
                     System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);
                     enemyResult = enemyShoot;
                 }
+                if(Objects.equals(enemyResult, "ostatni zatopiony")){
+                    out.println(enemyResult + ";A1");
+                    System.exit(0);
+                }
                 System.out.println("Write coordinates:\n");
                 String coordinates = ReadConsole.nextLine().trim().toUpperCase();
                 out.println(enemyResult + ";" + coordinates);
+
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -89,10 +100,52 @@ public class Server {
     public String shootLoader(int col, int row){
         char shootingPlace = HostMap[col][row];
         if(shootingPlace == '~' || shootingPlace == '.'){
+            HostMap[col][row] = '~';
             return "pudło";
         } else {
+            HostMap[col][row] = '@';
+            if(isShipSunk(col, row)){
+                --shipsAlive;
+                if(shipsAlive == 0){
+                    System.out.println("Przegrana");
+                    return "ostatni zatopiony";
+                }
+                return "trafiony zatopiony";
+            }
             return "trafiony";
         }
+    }
+
+    private boolean isShipSunk(int col, int row) {
+        boolean[][] visited = new boolean[10][10];
+        return checkVerticalSunk(col, row, visited);
+    }
+
+    private boolean checkVerticalSunk(int col, int row, boolean[][] visited) {
+        if (col < 0 || col > 9 || row < 0 || row > 9) {
+            return true;
+        }
+        char fieldOnCoords = HostMap[col][row];
+
+        if (visited[col][row] || fieldOnCoords == '~' || fieldOnCoords == '.') {
+            return true;
+        }
+
+        visited[col][row] = true;
+
+        if (fieldOnCoords == '#') {
+            return false;
+        }
+
+        if (fieldOnCoords == '@') {
+            if (!checkVerticalSunk(col, row - 1, visited)) return false;
+            if (!checkVerticalSunk(col, row + 1, visited)) return false;
+            if (!checkVerticalSunk(col + 1, row, visited)) return false;
+            if (!checkVerticalSunk(col - 1, row, visited)) return false;
+            return true;
+        }
+
+        return true;
     }
 
     public void readMap(){
@@ -113,7 +166,7 @@ public class Server {
             if(i == 0){
                 ++j;
             }
-            HostMap[i][j] = character;
+            HostMap[j][i] = character;
             ++i;
             i = i % 10;
         }
