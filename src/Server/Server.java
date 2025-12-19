@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 
@@ -19,6 +20,7 @@ public class Server {
     private static String MapFolder;
     private final String MapFileName = "hostMap.txt";
     private char[][] HostMap = new char[10][10];
+    private char[][] EnemyMap = new char[10][10];
     private final Scanner ReadConsole = new Scanner(System.in);
     private int shipsAlive = 10;
 
@@ -36,11 +38,19 @@ public class Server {
 
     public void runServerLogic(Server server){
         server.readMap();
+        for(char[] row : EnemyMap) {
+            Arrays.fill(row, '.');
+        }
+
         boolean isStarted = false;
         String command = null;
         int row = 0;
         int col = 0;
+        int errorCount = 0;
         String enemyResult = null;
+        String p[];
+        String myLastShot = "";
+        String myLastMsg = "";
         System.out.println("Waiting for client to start...");
         try {
             while(true){
@@ -48,40 +58,74 @@ public class Server {
                     while(true){
                         String received = in.readLine();
                         System.out.println("Client says: " + received);
-                        String[] p = received.split(";", -1);
+                        try {
+                        p = received.split(";", -1);
                         command = p[0].trim().toLowerCase();
                         col = p[1].trim().toLowerCase().charAt(0) - 97;
                         row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                        } catch (Exception ignore) {
+                            out.println(myLastMsg);
+                            ++errorCount;
+                            checkErrCount(errorCount);
+                            continue;
+                        }
                         if(!command.equalsIgnoreCase("start")) {
-                            out.println("Please, start the game first");
+                            out.println(myLastMsg);
+                            ++errorCount;
+                            checkErrCount(errorCount);
                             continue;
                         }
                         if (row < 0 || row > 9 || col < 0 || col > 9) {
-                            out.println("Index out of bonds");
+                            out.println(myLastMsg);
+                            ++errorCount;
+                            checkErrCount(errorCount);
                             continue;
                         }
                         isStarted = true;
                         break;
                     }
                     String enemyShoot = shootLoader(col,row);
-                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);
+                    printEnemyMap();
+                    printHostMap();
+                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);
                     enemyResult = enemyShoot;
                 } else {
                     String recieved = in.readLine();
-                    if(recieved.equalsIgnoreCase("ostatni zatopiony")){
-                        System.out.println("Wygrana");
-                        System.exit(0);
-                    }
                     System.out.println("Client says: " + recieved);
-                    String[] p = recieved.split(";", 2);
-                    col = p[1].trim().toLowerCase().charAt(0) - 97;
-                    row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
-                    if (row < 0 || row > 9 || col < 0 || col > 9) {
-                        out.println("Index out of bonds");
+                    try {
+                        p = recieved.split(";", 2);
+                        if (p[0].trim().equalsIgnoreCase("ostatni zatopiony")) {
+                            System.out.println("Wygrana");
+                            System.exit(0);
+                        }
+                        col = p[1].trim().toLowerCase().charAt(0) - 97;
+                        row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                    } catch (Exception ignore) {
+                        out.println(myLastMsg);
+                        ++errorCount;
+                        checkErrCount(errorCount);
                         continue;
                     }
+                    if (row < 0 || row > 9 || col < 0 || col > 9) {
+                        out.println(myLastMsg);
+                        ++errorCount;
+                        checkErrCount(errorCount);
+                        continue;
+                    }
+                    try {
+                        int myLastShotCol = myLastShot.charAt(0) - 97;
+                        int myLastShotRow = Integer.parseInt(myLastShot.substring(1)) - 1;
+                        if (!updateEnemyMap(myLastShotCol, myLastShotRow, p[0].trim().toLowerCase())) {
+                            out.println(myLastMsg);
+                            ++errorCount;
+                            checkErrCount(errorCount);
+                            continue;
+                        }
+                    } catch (Exception ignore) {}
                     String enemyShoot = shootLoader(col,row);
-                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);
+                    printEnemyMap();
+                    printHostMap();
+                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);
                     enemyResult = enemyShoot;
                 }
                 if(Objects.equals(enemyResult, "ostatni zatopiony")){
@@ -90,13 +134,57 @@ public class Server {
                 }
                 System.out.println("Write coordinates:\n");
                 String coordinates = ReadConsole.nextLine().trim().toUpperCase();
-                out.println(enemyResult + ";" + coordinates);
+                myLastShot = coordinates.toLowerCase().trim();
+                myLastMsg = enemyResult + ";" + coordinates;
+                out.println(myLastMsg);
+                errorCount = 0;
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
+    public void printEnemyMap() {
+        System.out.println("Enemy Map:");
+        for (char[] chars : EnemyMap) {
+            for (char aChar : chars) {
+                System.out.print(aChar + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public void printHostMap() {
+        System.out.println("My Map:");
+        for (char[] chars : HostMap) {
+            for (char aChar : chars) {
+                System.out.print(aChar + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public boolean updateEnemyMap(int col, int row, String result){
+        if(result.equalsIgnoreCase("pudło")){
+            EnemyMap[col][row] = '?';
+            return true;
+        } else if (result.equalsIgnoreCase("trafiony") || result.equalsIgnoreCase("trafiony zatopiony") || result.equalsIgnoreCase("ostatni zatopiony")) {
+            EnemyMap[col][row] = '#';
+            return true;
+        } else if (result.equalsIgnoreCase("start")) {
+            return true;
+        }
+        return false;
+    }
+
+    public void checkErrCount(int errorCount){
+        if(errorCount >= 3){
+            System.out.println("Błąd komunikacji");
+            System.exit(0);
+        }
+    }
+
     public String shootLoader(int col, int row){
         char shootingPlace = HostMap[col][row];
         if(shootingPlace == '~' || shootingPlace == '.'){

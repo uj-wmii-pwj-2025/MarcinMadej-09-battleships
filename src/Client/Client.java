@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -17,6 +18,7 @@ public class Client {
     private static String MapFolder;
     private final String MapFileName = "clientMap.txt";
     private char[][] ClientMap = new char[10][10];
+    private char[][] EnemyMap = new char[10][10];
     private final Scanner ReadConsole = new Scanner(System.in);
     private int shipsAlive = 1;
 
@@ -37,10 +39,16 @@ public class Client {
 
     public void runClientLogic(Client client){
         client.readMap();
+        for(char[] row : EnemyMap) {
+            Arrays.fill(row, '.');
+        }
         String command = null;
         int row = 0;
         int col = 0;
-        String enemyResult = null;
+        int errorCount = 0;
+        String p[];
+        String myLastShot = "";
+        String myLastMsg = "";
         try {
             while (true) {
                 System.out.println("Write - start - to start the game");
@@ -56,23 +64,49 @@ public class Client {
                 }
                 System.out.println("Write coordinates:\n");
                 String coordinates = ReadConsole.nextLine().trim().toUpperCase();
-                out.println(command + ";" + coordinates);
+                myLastShot = coordinates.trim().toLowerCase();
+                myLastMsg = command + ";" + coordinates;
+                out.println(myLastMsg);
+                errorCount = 0;
                 while(true) {
                     String recieved = in.readLine();
-                    if(recieved.equalsIgnoreCase("ostatni zatopiony")){
-                        System.out.println("Wygrana");
-                        System.exit(0);
-                    }
                     System.out.println("Server says: " + recieved);
-                    String[] p = recieved.split(";", 2);
-                    col = p[1].trim().toLowerCase().charAt(0) - 97;
-                    row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
-                    if (row < 0 || row > 9 || col < 0 || col > 9) {
-                        out.println("Index out of bonds");
+                    try {
+                        p = recieved.split(";", 2);
+                        if (p[0].trim().equalsIgnoreCase("ostatni zatopiony")) {
+                            System.out.println("Wygrana");
+                            System.exit(0);
+                        }
+                        col = p[1].trim().toLowerCase().charAt(0) - 97;
+                        row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
+                    } catch (Exception ignore) {
+                        out.println(myLastMsg);
+                        ++errorCount;
+                        checkErrCount(errorCount);
                         continue;
                     }
+                    if (row < 0 || row > 9 || col < 0 || col > 9) {
+                        out.println(myLastMsg);
+                        ++errorCount;
+                        checkErrCount(errorCount);
+                        continue;
+                    }
+                    int myLastShotCol = -1;
+                    int myLastShotRow = -1;
+                    try {
+                        myLastShotCol = myLastShot.charAt(0) - 97;
+                        myLastShotRow = Integer.parseInt(myLastShot.substring(1)) - 1;
+                        if(!updateEnemyMap(myLastShotCol, myLastShotRow, p[0].trim().toLowerCase())){
+                            out.println(myLastMsg);
+                            ++errorCount;
+                            checkErrCount(errorCount);
+                            continue;
+                        }
+                    } catch (Exception ignore) {}
                     String enemyShoot = shootLoader(col,row);
-                    System.out.println("Enemy: " + enemyShoot + " " + col + " " + row);;
+                    printEnemyMap();
+                    printClientMap();
+                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);;
                     command = enemyShoot;
                     break;
                 }
@@ -80,6 +114,46 @@ public class Client {
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void printEnemyMap() {
+        System.out.println("Enemy Map:");
+        for (char[] chars : EnemyMap) {
+            for (char aChar : chars) {
+                System.out.print(aChar + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public void printClientMap() {
+        System.out.println("My Map:");
+        for (char[] chars : ClientMap) {
+            for (char aChar : chars) {
+                System.out.print(aChar + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public boolean updateEnemyMap(int col, int row, String result){
+        if(result.equalsIgnoreCase("pudło")){
+            EnemyMap[col][row] = '?';
+            return true;
+        } else if (result.equalsIgnoreCase("trafiony") || result.equalsIgnoreCase("trafiony zatopiony") || result.equalsIgnoreCase("ostatni zatopiony")) {
+            EnemyMap[col][row] = '#';
+            return true;
+        } else if (col == -1 || row == -1) {
+            return true;
+        }
+        return false;
+    }
+
+    public void checkErrCount(int errorCount){
+        if(errorCount >= 3){
+            System.out.println("Błąd komunikacji");
+            System.exit(0);
         }
     }
 
@@ -147,7 +221,7 @@ public class Client {
         int i = 0;
         int j = -1;
         for( char character : mapString.toCharArray() ){
-            if(i == 9 && j == 9){
+            if(i == 10 && j == 9){
                 break;
             }
             if(i == 0){
