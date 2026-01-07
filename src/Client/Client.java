@@ -20,15 +20,15 @@ public class Client {
     private char[][] ClientMap = new char[10][10];
     private char[][] EnemyMap = new char[10][10];
     private final Scanner ReadConsole = new Scanner(System.in);
-    private int shipsAlive = 1;
+    private int shipsAlive = 10;
 
     public void clientMain(String host, int port, String mapFile){
         Client client = new Client();
         Client.MapFolder = mapFile;
         try {
             client.startClient(host, port);
-            String response = client.sendMessage("hello server");
-            System.out.println(response);
+            //   String response = client.sendMessage("hello server");
+            //   System.out.println(response);
             System.out.println(MapFolder);
             generateToFile(mapFile, MapFileName);
             client.runClientLogic(client);
@@ -106,7 +106,7 @@ public class Client {
                     String enemyShoot = shootLoader(col,row);
                     printEnemyMap();
                     printClientMap();
-                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);;
+                    System.out.println("Enemy shot: " + String.valueOf((char) (col + 97)).toUpperCase() + (row+1) + " Result: " + enemyShoot);
                     command = enemyShoot;
                     break;
                 }

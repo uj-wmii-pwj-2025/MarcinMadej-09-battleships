@@ -87,7 +87,7 @@ public class Server {
                     String enemyShoot = shootLoader(col,row);
                     printEnemyMap();
                     printHostMap();
-                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);
+                    System.out.println("Enemy shot: " + String.valueOf((char) (col + 97)).toUpperCase() + (row+1) + " Result: " + enemyShoot);
                     enemyResult = enemyShoot;
                 } else {
                     String recieved = in.readLine();
@@ -125,7 +125,7 @@ public class Server {
                     String enemyShoot = shootLoader(col,row);
                     printEnemyMap();
                     printHostMap();
-                    System.out.println("Enemy result: " + enemyShoot + " " + col + " " + row);
+                    System.out.println("Enemy shot: " + String.valueOf((char) (col + 97)).toUpperCase() + (row+1) + " Result: " + enemyShoot);
                     enemyResult = enemyShoot;
                 }
                 if(Objects.equals(enemyResult, "ostatni zatopiony")){
@@ -267,12 +267,12 @@ public class Server {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            String greeting = in.readLine();
-            if ("hello server".equals(greeting)) {
-                out.println("hello client");
-            } else {
-                out.println("unrecognised greeting");
-            }
+            //String greeting = in.readLine();
+            //if ("hello server".equals(greeting)) {
+            //    out.println("hello client");
+            //} else {
+            //    out.println("unrecognised greeting");
+            //}
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
