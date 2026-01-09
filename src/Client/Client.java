@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Scanner;
 
 import static ShipsGenerator.GenerateShips.generateToFile;
@@ -27,13 +26,10 @@ public class Client {
         Client.MapFolder = mapFile;
         try {
             client.startClient(host, port);
-            //   String response = client.sendMessage("hello server");
-            //   System.out.println(response);
-            System.out.println(MapFolder);
             generateToFile(mapFile, MapFileName);
             client.runClientLogic(client);
         } finally {
-            stopClient();
+            client.stopClient();
         }
     }
 
@@ -60,7 +56,7 @@ public class Client {
             while (true) {
                 if(command.equalsIgnoreCase("ostatni zatopiony")){
                     out.println(command + ";A1");
-                    System.exit(0);
+                    return;
                 }
                 System.out.println("Write coordinates:\n");
                 String coordinates = ReadConsole.nextLine().trim().toUpperCase();
@@ -75,7 +71,7 @@ public class Client {
                         p = recieved.split(";", 2);
                         if (p[0].trim().equalsIgnoreCase("ostatni zatopiony")) {
                             System.out.println("Wygrana");
-                            System.exit(0);
+                            return;
                         }
                         col = p[1].trim().toLowerCase().charAt(0) - 97;
                         row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
@@ -153,7 +149,7 @@ public class Client {
     public void checkErrCount(int errorCount){
         if(errorCount >= 3){
             System.out.println("Błąd komunikacji");
-            System.exit(0);
+            this.stopClient();
         }
     }
 
@@ -163,6 +159,12 @@ public class Client {
             ClientMap[col][row] = '~';
             return "pudło";
         } else {
+            if(shootingPlace == '@'){
+                if(isShipSunk(col, row)){
+                    return "trafiony zatopiony";
+                }
+                return "trafiony";
+            }
             ClientMap[col][row] = '@';
             if(isShipSunk(col, row)){
                 --shipsAlive;
@@ -209,7 +211,6 @@ public class Client {
     }
 
     public void readMap(){
-        System.out.println(MapFolder);
         Path mapPath = Paths.get(MapFolder + "\\" +  MapFileName);
         String mapString;
         try {
@@ -238,15 +239,6 @@ public class Client {
             clientSocket = new Socket(host, port);
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String sendMessage(String msg) {
-        try {
-            out.println(msg);
-            return in.readLine();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

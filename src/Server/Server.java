@@ -96,7 +96,7 @@ public class Server {
                         p = recieved.split(";", 2);
                         if (p[0].trim().equalsIgnoreCase("ostatni zatopiony")) {
                             System.out.println("Wygrana");
-                            System.exit(0);
+                            return;
                         }
                         col = p[1].trim().toLowerCase().charAt(0) - 97;
                         row = Integer.parseInt(p[1].trim().toLowerCase().substring(1)) - 1;
@@ -130,7 +130,7 @@ public class Server {
                 }
                 if(Objects.equals(enemyResult, "ostatni zatopiony")){
                     out.println(enemyResult + ";A1");
-                    System.exit(0);
+                    return;
                 }
                 System.out.println("Write coordinates:\n");
                 String coordinates = ReadConsole.nextLine().trim().toUpperCase();
@@ -181,7 +181,7 @@ public class Server {
     public void checkErrCount(int errorCount){
         if(errorCount >= 3){
             System.out.println("Błąd komunikacji");
-            System.exit(0);
+            this.stopServer();
         }
     }
 
@@ -191,6 +191,12 @@ public class Server {
             HostMap[col][row] = '~';
             return "pudło";
         } else {
+            if(shootingPlace == '@'){
+                if(isShipSunk(col, row)){
+                    return "trafiony zatopiony";
+                }
+                return "trafiony";
+            }
             HostMap[col][row] = '@';
             if(isShipSunk(col, row)){
                 --shipsAlive;
@@ -266,22 +272,6 @@ public class Server {
             clientSocket = serverSocket.accept();
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-
-            //String greeting = in.readLine();
-            //if ("hello server".equals(greeting)) {
-            //    out.println("hello client");
-            //} else {
-            //    out.println("unrecognised greeting");
-            //}
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String sendMessage(String msg) {
-        try {
-            out.println(msg);
-            return in.readLine();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
